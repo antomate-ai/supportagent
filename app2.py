@@ -14,63 +14,73 @@ client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Assistant ID
 ASSISTANT_ID = "asst_eCbjATL3G2EJ9oLaXqz5HZEX"
 
-# Multilingual UI texts
-UI_TEXTS = {
-    "en": {
-        "page_title": "Transact Customer Support",
-        "title": "📞 Transact Customer Support",
-        "description": "Welcome to **Transact Customer Support** — your multilingual assistant for all inquiries about language courses.\n\nSelect a sample question from the list below, or type your own in the chat.",
-        "input_placeholder": "Type your question here...",
-        "bot_typing": "_Bot is typing..._"
-    },
-    "ar": {
-        "page_title": "Transact Customer Support",
-        "title": "📞 Transact Customer Support",
-        "description": "مرحباً بك في **Transact Customer Support** — مساعدك متعدد اللغات لجميع الاستفسارات حول دورات اللغة. يمكنك اختيار سؤال نموذجي من القائمة أدناه أو كتابة سؤالك الخاص في المحادثة.",
-        "input_placeholder": "اكتب سؤالك هنا...",
-        "bot_typing": "_المساعد يكتب..._"
-    },
-    "tr": {
-        "page_title": "Transact Customer Support",
-        "title": "📞 Transact Customer Support",
-        "description": "**Transact Customer Support**'a hoş geldiniz — dil kurslarıyla ilgili tüm sorularınız için çok dilli asistanınız. Aşağıdaki örnek sorulardan birini seçebilir veya kendi sorunuzu sohbet kutusuna yazabilirsiniz.",
-        "input_placeholder": "Sorunuzu buraya yazın...",
-        "bot_typing": "_Bot yazıyor..._"
-    }
-}
+# App metadata
+APP_TITLE = "Transact Customer Support"
+APP_DESCRIPTION = "Welcome to **Transact Customer Support** — your multilingual assistant for all inquiries about language courses.\n\nSelect a sample question from the list below, or type your own in the chat."
 
 # Example prompts
 EXAMPLES = {
     "General Inquiry": [
         "I saw your ad on Instagram — can you tell me more about your courses?",
         "Which languages do you offer?",
-        "Are there any cultural activities included?",
-        "فيك تخبرني شو الكورسات المتوفرة عندكن؟",
-        "Türkçe kurslarının içeriği hakkında bilgi alabilir miyim?"
+        "Are there any cultural activities included?"
     ],
     "Pricing & Discounts": [
         "How much does the Arabic beginner course cost?",
-        "Do you have student discounts?",
-        "ممكن أعرف قديش تكلفة كورس العربي للمبتدئين؟",
-        "Arapça başlangıç seviyesi kursunun fiyatı nedir?"
+        "Do you have student discounts?"
     ],
     "Course Schedule": [
         "When do the next English conversation classes start?",
-        "Do you have evening classes for Turkish?",
-        "إيمتى بتبلش دورات المحادثة بالإنجليزي؟",
-        "Türkçe için akşam dersleri var mı?"
+        "Do you have evening classes for Turkish?"
     ],
     "Registration Assistance": [
-        "I tried to sign up online but it didn’t go through — can you help?",
-        "جربت سجل أونلاين وما زبط — ممكن تساعديني؟",
-        "Online kaydolmaya çalıştım ama olmadı — yardımcı olabilir misiniz?"
+        "I tried to sign up online but it didn’t go through — can you help?"
     ],
     "Change / Cancel Enrollment": [
-        "I want to cancel my enrollment — what is the refund policy?",
-        "بدي غيّر وقت الصف — في مجال؟",
-        "Ders saatimi değiştirebilir miyim?"
+        "I want to cancel my enrollment — what is the refund policy?"
+    ],
+    "Technical Support (Digital Platform)": [
+        "I can’t log in to my account.",
+        "The video lessons are not loading."
+    ],
+    "Certificate Request": [
+        "How can I get my certificate for the Arabic course?"
+    ],
+    "Placement Test Request": [
+        "Do I need to take a level test before enrolling?"
+    ],
+    "Trial Class Booking": [
+        "I’d like to book a free trial class for Arabic."
+    ],
+    "Course Format Inquiry": [
+        "Do you offer Turkish courses both online and in person?"
+    ],
+    "Teacher Info": [
+        "Who teaches the advanced English courses?"
+    ],
+    "Language Availability": [
+        "Do you offer Arabic courses for French-speaking students?"
+    ],
+    "Payment Issues": [
+        "My card was charged twice — can you check?"
+    ],
+    "Children’s Courses": [
+        "Do you offer Turkish courses for kids aged 8–10?"
+    ],
+    "Referral / Gift Questions": [
+        "I received a gift card — how do I use it?"
     ]
-    # You can continue adding all 15 categories here (just copy your list)
+}
+
+# Multilingual UI texts
+UI_TEXTS = {
+    "en": {
+        "page_title": APP_TITLE,
+        "title": APP_TITLE,
+        "description": APP_DESCRIPTION,
+        "input_placeholder": "Type your question here...",
+        "bot_typing": "_Bot is typing..._"
+    }
 }
 
 # Detect language of input
@@ -85,7 +95,7 @@ def detect_language(text):
         return "tr"
     return "en"
 
-# Configure Streamlit page (default EN)
+# Configure Streamlit page
 st.set_page_config(page_title=UI_TEXTS["en"]["page_title"], page_icon="🤖")
 
 # Initialize session state
@@ -105,26 +115,30 @@ if "first_message_content" not in st.session_state:
 # Select UI texts
 ui_text = UI_TEXTS[st.session_state.detected_language]
 
-# Show logos
+# Layout: show logos in two columns
 col1, col2 = st.columns([1, 1])
 with col1:
-    st.image("logo1.png", use_column_width=True)
+    st.image("logo1.png", width=120)  # replace with your logo path
 with col2:
-    st.image("logo2.png", use_column_width=True)
+    st.image("logo2.png", width=120)  # replace with your logo path
 
-# Render UI
+# App title & description
 st.title(ui_text["title"])
 st.write(ui_text["description"])
 
-# Show example prompts (safe: no nested expanders)
-with st.expander("📋 Show Example Questions"):
+# Example Prompts (Collapsible)
+with st.expander("💡 Show Example Questions"):
     for category, prompts in EXAMPLES.items():
-        st.markdown(f"### {category}")  # Safe: no nested expander
-        for prompt in prompts:
-            if st.button(prompt):
-                st.session_state.detected_language = detect_language(prompt)
+        st.subheader(category)
+        for example in prompts:
+            if st.button(example, key=example):
+                # Clear chat & start new with this example
+                thread = client.beta.threads.create()
+                st.session_state.thread_id = thread.id
+                st.session_state.messages = []
+                st.session_state.detected_language = detect_language(example)
                 st.session_state.language_detected_done = True
-                st.session_state.first_message_content = prompt
+                st.session_state.first_message_content = example
                 st.session_state.send_first_message_after_rerun = True
                 st.rerun()
 
@@ -159,6 +173,7 @@ if st.session_state.send_first_message_after_rerun:
                 thread_id=st.session_state.thread_id,
                 assistant_id=ASSISTANT_ID
             )
+
             while True:
                 run_status = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id,
@@ -170,15 +185,19 @@ if st.session_state.send_first_message_after_rerun:
                     st.error(f"Run failed with status: {run_status.status}")
                     break
                 time.sleep(1)
+
             time.sleep(2)
+
             messages = client.beta.threads.messages.list(
                 thread_id=st.session_state.thread_id
             )
+
             assistant_reply = None
             for msg in messages.data:
                 if msg.role == "assistant":
                     assistant_reply = msg.content[0].text.value
                     break
+
             if assistant_reply is None:
                 assistant_reply = "_Error: No assistant reply found._"
 
@@ -216,6 +235,7 @@ if user_input:
                     thread_id=st.session_state.thread_id,
                     assistant_id=ASSISTANT_ID
                 )
+
                 while True:
                     run_status = client.beta.threads.runs.retrieve(
                         thread_id=st.session_state.thread_id,
@@ -227,15 +247,19 @@ if user_input:
                         st.error(f"Run failed with status: {run_status.status}")
                         break
                     time.sleep(1)
+
                 time.sleep(2)
+
                 messages = client.beta.threads.messages.list(
                     thread_id=st.session_state.thread_id
                 )
+
                 assistant_reply = None
                 for msg in messages.data:
                     if msg.role == "assistant":
                         assistant_reply = msg.content[0].text.value
                         break
+
                 if assistant_reply is None:
                     assistant_reply = "_Error: No assistant reply found._"
 
