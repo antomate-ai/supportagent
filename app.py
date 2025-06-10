@@ -124,20 +124,25 @@ if st.session_state.send_first_message_after_rerun:
                     break
                 time.sleep(1)
 
+            # Small wait to ensure messages are committed
+            time.sleep(2)
+
             # Retrieve latest messages from thread
             messages = client.beta.threads.messages.list(
                 thread_id=st.session_state.thread_id
             )
 
-            # Get the last assistant message
-            for msg in reversed(messages.data):
+            # Find the latest assistant message
+            assistant_reply = None
+            for msg in messages.data:
                 if msg.role == "assistant":
                     assistant_reply = msg.content[0].text.value
                     break
 
-            # Replace placeholder with actual reply
-            placeholder.markdown(assistant_reply)
+            if assistant_reply is None:
+                assistant_reply = "_Error: No assistant reply found._"
 
+            placeholder.markdown(assistant_reply)
             st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
 
 # Chat input
@@ -187,15 +192,21 @@ if user_input:
                         break
                     time.sleep(1)
 
+                # Small wait to ensure messages are committed
+                time.sleep(2)
+
                 messages = client.beta.threads.messages.list(
                     thread_id=st.session_state.thread_id
                 )
 
-                for msg in reversed(messages.data):
+                assistant_reply = None
+                for msg in messages.data:
                     if msg.role == "assistant":
                         assistant_reply = msg.content[0].text.value
                         break
 
-                placeholder.markdown(assistant_reply)
+                if assistant_reply is None:
+                    assistant_reply = "_Error: No assistant reply found._"
 
+                placeholder.markdown(assistant_reply)
                 st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
