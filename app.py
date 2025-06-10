@@ -108,9 +108,9 @@ ui_text = UI_TEXTS[st.session_state.detected_language]
 # Show logos
 col1, col2 = st.columns([1, 1])
 with col1:
-    st.image("logo1.png", use_column_width=True)
+    st.image("logo1.png", use_container_width=True)
 with col2:
-    st.image("logo2.png", use_column_width=True)
+    st.image("logo2.png", use_container_width=True)
 
 # Render UI
 st.title(ui_text["title"])
