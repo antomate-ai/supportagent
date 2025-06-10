@@ -1,4 +1,4 @@
-# helpdesk_support_bot_assistant_multilang.py
+# helpdesk_support_bot_assistant_multilang_fixed.py
 
 import streamlit as st
 import openai
@@ -88,11 +88,9 @@ if st.session_state.send_first_message_after_rerun:
     st.session_state.send_first_message_after_rerun = False
     st.session_state.first_message_content = ""
 
-    # Display user message
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Append user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     # Add user message to the Assistant thread
@@ -140,7 +138,6 @@ if st.session_state.send_first_message_after_rerun:
             # Replace placeholder with actual reply
             placeholder.markdown(assistant_reply)
 
-            # Append assistant reply to chat history
             st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
 
 # Chat input
@@ -153,7 +150,6 @@ if user_input:
         st.session_state.language_detected_done = True
         st.session_state.first_message_content = user_input
         st.session_state.send_first_message_after_rerun = True
-        st.session_state.messages.append({"role": "user", "content": user_input})  # store in history for display
         st.rerun()
 
     else:
