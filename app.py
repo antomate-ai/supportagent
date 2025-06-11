@@ -3,6 +3,7 @@ import openai
 from dotenv import load_dotenv
 import os
 import time
+import random
 from langdetect import detect
 
 # Load environment variables
@@ -20,22 +21,19 @@ UI_TEXTS = {
         "page_title": "Transact Customer Support",
         "title": "📞 Transact Customer Support",
         "description": "Welcome to **Transact Customer Support** — your multilingual assistant for all inquiries about language courses.\n\nSelect a sample question from the list below, or type your own in the chat.",
-        "input_placeholder": "Type your question here...",
-        "bot_typing": "_Bot is typing..._"
+        "input_placeholder": "Type your question here..."
     },
     "ar": {
         "page_title": "Transact Customer Support",
         "title": "📞 Transact Customer Support",
         "description": "مرحباً بك في **Transact Customer Support** — مساعدك متعدد اللغات لجميع الاستفسارات حول دورات اللغة. يمكنك اختيار سؤال نموذجي من القائمة أدناه أو كتابة سؤالك الخاص في المحادثة.",
-        "input_placeholder": "اكتب سؤالك هنا...",
-        "bot_typing": "_المساعد يكتب..._"
+        "input_placeholder": "اكتب سؤالك هنا..."
     },
     "tr": {
         "page_title": "Transact Customer Support",
         "title": "📞 Transact Customer Support",
         "description": "**Transact Customer Support**'a hoş geldiniz — dil kurslarıyla ilgili tüm sorularınız için çok dilli asistanınız. Aşağıdaki örnek sorulardan birini seçebilir veya kendi sorunuzu sohbet kutusuna yazabilirsiniz.",
-        "input_placeholder": "Sorunuzu buraya yazın...",
-        "bot_typing": "_Bot yazıyor..._"
+        "input_placeholder": "Sorunuzu buraya yazın..."
     }
 }
 
@@ -70,10 +68,9 @@ EXAMPLES = {
         "بدي غيّر وقت الصف — في مجال؟",
         "Ders saatimi değiştirebilir miyim?"
     ]
-    # You can continue adding all 15 categories here (just copy your list)
 }
 
-# Detect language of input
+# Language detection
 def detect_language(text):
     try:
         lang = detect(text)
@@ -85,10 +82,22 @@ def detect_language(text):
         return "tr"
     return "en"
 
-# Configure Streamlit page (default EN)
+# WhatsApp-style typing animation
+def animate_typing_whatsapp(placeholder, duration=5):
+    """Show only dots like WhatsApp-style typing animation."""
+    animation_frames = [".", "..", "..."]
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        for frame in animation_frames:
+            placeholder.markdown(f"<p style='font-size:32px; text-align:center;'>{frame}</p>", unsafe_allow_html=True)
+            time.sleep(random.uniform(0.3, 0.6))
+            if time.time() - start_time >= duration:
+                break
+
+# Streamlit page config
 st.set_page_config(page_title=UI_TEXTS["en"]["page_title"], page_icon="🤖")
 
-# Initialize session state
+# Session state init
 if "thread_id" not in st.session_state:
     thread = client.beta.threads.create()
     st.session_state.thread_id = thread.id
@@ -112,14 +121,14 @@ with col1:
 with col2:
     st.image("logo2.png", use_container_width=True)
 
-# Render UI
+# UI
 st.title(ui_text["title"])
 st.write(ui_text["description"])
 
-# Show example prompts (safe: no nested expanders)
+# Example prompts
 with st.expander("📋 Show Example Questions"):
     for category, prompts in EXAMPLES.items():
-        st.markdown(f"### {category}")  # Safe: no nested expander
+        st.markdown(f"### {category}")
         for prompt in prompts:
             if st.button(prompt):
                 st.session_state.detected_language = detect_language(prompt)
@@ -128,7 +137,7 @@ with st.expander("📋 Show Example Questions"):
                 st.session_state.send_first_message_after_rerun = True
                 st.rerun()
 
-# Show chat history
+# Chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -150,40 +159,40 @@ if st.session_state.send_first_message_after_rerun:
         content=user_input
     )
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant",avatar="logo1.png"):
         placeholder = st.empty()
-        placeholder.markdown(ui_text["bot_typing"])
+        animate_typing_whatsapp(placeholder, duration=4)
 
-        with st.spinner("Generating response..."):
-            run = client.beta.threads.runs.create(
+        run = client.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=ASSISTANT_ID
+        )
+        while True:
+            run_status = client.beta.threads.runs.retrieve(
                 thread_id=st.session_state.thread_id,
-                assistant_id=ASSISTANT_ID
+                run_id=run.id
             )
-            while True:
-                run_status = client.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                )
-                if run_status.status == "completed":
-                    break
-                elif run_status.status in ["failed", "expired", "cancelled"]:
-                    st.error(f"Run failed with status: {run_status.status}")
-                    break
-                time.sleep(1)
-            time.sleep(2)
-            messages = client.beta.threads.messages.list(
-                thread_id=st.session_state.thread_id
-            )
-            assistant_reply = None
-            for msg in messages.data:
-                if msg.role == "assistant":
-                    assistant_reply = msg.content[0].text.value
-                    break
-            if assistant_reply is None:
-                assistant_reply = "_Error: No assistant reply found._"
+            if run_status.status == "completed":
+                break
+            elif run_status.status in ["failed", "expired", "cancelled"]:
+                st.error(f"Run failed with status: {run_status.status}")
+                break
+            time.sleep(1)
 
-            placeholder.markdown(assistant_reply)
-            st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+        time.sleep(2)
+        messages = client.beta.threads.messages.list(
+            thread_id=st.session_state.thread_id
+        )
+        assistant_reply = None
+        for msg in messages.data:
+            if msg.role == "assistant":
+                assistant_reply = msg.content[0].text.value
+                break
+        if assistant_reply is None:
+            assistant_reply = "_Error: No assistant reply found._"
+
+        placeholder.markdown(assistant_reply)
+        st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
 
 # Chat input
 user_input = st.chat_input(ui_text["input_placeholder"])
@@ -207,37 +216,37 @@ if user_input:
             content=user_input
         )
 
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant",avatar="logo1.png"):
             placeholder = st.empty()
-            placeholder.markdown(ui_text["bot_typing"])
+            animate_typing_whatsapp(placeholder, duration=4)
 
-            with st.spinner("Generating response..."):
-                run = client.beta.threads.runs.create(
+            run = client.beta.threads.runs.create(
+                thread_id=st.session_state.thread_id,
+                assistant_id=ASSISTANT_ID
+            )
+            while True:
+                run_status = client.beta.threads.runs.retrieve(
                     thread_id=st.session_state.thread_id,
-                    assistant_id=ASSISTANT_ID
+                    run_id=run.id
                 )
-                while True:
-                    run_status = client.beta.threads.runs.retrieve(
-                        thread_id=st.session_state.thread_id,
-                        run_id=run.id
-                    )
-                    if run_status.status == "completed":
-                        break
-                    elif run_status.status in ["failed", "expired", "cancelled"]:
-                        st.error(f"Run failed with status: {run_status.status}")
-                        break
-                    time.sleep(1)
-                time.sleep(2)
-                messages = client.beta.threads.messages.list(
-                    thread_id=st.session_state.thread_id
-                )
-                assistant_reply = None
-                for msg in messages.data:
-                    if msg.role == "assistant":
-                        assistant_reply = msg.content[0].text.value
-                        break
-                if assistant_reply is None:
-                    assistant_reply = "_Error: No assistant reply found._"
+                if run_status.status == "completed":
+                    break
+                elif run_status.status in ["failed", "expired", "cancelled"]:
+                    st.error(f"Run failed with status: {run_status.status}")
+                    break
+                time.sleep(1)
 
-                placeholder.markdown(assistant_reply)
-                st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+            time.sleep(2)
+            messages = client.beta.threads.messages.list(
+                thread_id=st.session_state.thread_id
+            )
+            assistant_reply = None
+            for msg in messages.data:
+                if msg.role == "assistant":
+                    assistant_reply = msg.content[0].text.value
+                    break
+            if assistant_reply is None:
+                assistant_reply = "_Error: No assistant reply found._"
+
+            placeholder.markdown(assistant_reply)
+            st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
